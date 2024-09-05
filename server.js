@@ -1,7 +1,11 @@
 import express from 'express';
+import cors from 'cors'; // Импортирай cors модула
 import { users } from './data/users.js';
 
 const app = express();
+
+// Използвай cors като middleware
+app.use(cors());
 
 // Middleware за парсване на JSON заявки
 app.use(express.json());
