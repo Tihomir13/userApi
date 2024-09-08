@@ -6,16 +6,13 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const client = new MongoClient(process.env.MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-});
+const client = new MongoClient(process.env.MONGODB_URI);
 
 let db;
 async function connectDB() {
   try {
     await client.connect();
-    db = client.db('bookstore');  // Базата данни се казва "bookstore"
+    db = client.db('bookstore');
     console.log('Connected to MongoDB');
   } catch (err) {
     console.error(err);
@@ -24,12 +21,6 @@ async function connectDB() {
 
 connectDB();
 
-// Начална страница
-app.get('/', (req, res) => {
-  res.send('Welcome to the Users and Books API');
-});
-
-// Всички потребители
 app.get('/users', async (req, res) => {
   try {
     const users = await db.collection('users').find().toArray();
@@ -39,10 +30,11 @@ app.get('/users', async (req, res) => {
   }
 });
 
-// Конкретен потребител по ID
 app.get('/users/:id', async (req, res) => {
   try {
-    const user = await db.collection('users').findOne({ _id: new ObjectId(req.params.id) });
+    const user = await db
+      .collection('users')
+      .findOne({ _id: new ObjectId(req.params.id) });
     if (user) {
       res.json(user);
     } else {
@@ -53,10 +45,11 @@ app.get('/users/:id', async (req, res) => {
   }
 });
 
-// Книги на конкретен потребител по ID на потребителя
 app.get('/users/:id/books', async (req, res) => {
   try {
-    const user = await db.collection('users').findOne({ _id: new ObjectId(req.params.id) });
+    const user = await db
+      .collection('users')
+      .findOne({ _id: new ObjectId(req.params.id) });
     if (user) {
       res.json(user.books);
     } else {
@@ -67,7 +60,6 @@ app.get('/users/:id/books', async (req, res) => {
   }
 });
 
-// Създаване на нов потребител
 app.post('/users', async (req, res) => {
   try {
     const newUser = {
@@ -76,16 +68,17 @@ app.post('/users', async (req, res) => {
     };
 
     const result = await db.collection('users').insertOne(newUser);
-    res.status(201).json(result.ops[0]); // Връщаме новосъздадения потребител
+    res.status(201).json(result.ops[0]);
   } catch (err) {
     res.status(500).send('Error creating user');
   }
 });
 
-// Добавяне на нова книга към потребител по ID
 app.post('/users/:id/books', async (req, res) => {
   try {
-    const user = await db.collection('users').findOne({ _id: new ObjectId(req.params.id) });
+    const user = await db
+      .collection('users')
+      .findOne({ _id: new ObjectId(req.params.id) });
 
     if (user) {
       const newBook = {
@@ -93,10 +86,12 @@ app.post('/users/:id/books', async (req, res) => {
         title: req.body.title,
       };
 
-      await db.collection('users').updateOne(
-        { _id: new ObjectId(req.params.id) },
-        { $push: { books: newBook } }
-      );
+      await db
+        .collection('users')
+        .updateOne(
+          { _id: new ObjectId(req.params.id) },
+          { $push: { books: newBook } }
+        );
 
       res.status(201).json(newBook);
     } else {
@@ -107,7 +102,6 @@ app.post('/users/:id/books', async (req, res) => {
   }
 });
 
-// Стартиране на сървъра
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
