@@ -9,7 +9,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const client = new MongoClient(process.env.MONGODB_URI, {});
+const client = new MongoClient(process.env.MONGODB_URI);
 
 let db;
 async function connectDB() {
