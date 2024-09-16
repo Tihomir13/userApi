@@ -1,5 +1,7 @@
 import express from 'express';
 import cors from 'cors';
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
 import { MongoClient, ObjectId } from 'mongodb';
 
 const app = express();
@@ -15,7 +17,7 @@ let db;
 async function connectDB() {
   try {
     await client.connect();
-    db = client.db('bookstore');  // Базата данни се казва "bookstore"
+    db = client.db('bookstore');
     console.log('Connected to MongoDB');
   } catch (err) {
     console.error(err);
@@ -24,13 +26,75 @@ async function connectDB() {
 
 connectDB();
 
+// Middleware за удостоверяване на JWT токена
+function authenticateToken(req, res, next) {
+  const token = req.headers['authorization']?.split(' ')[1];
+  if (!token) return res.status(401).send('Access Denied');
+
+  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+    if (err) return res.status(403).send('Invalid Token');
+    req.user = user;
+    next();
+  });
+}
+
 // Начална страница
 app.get('/', (req, res) => {
   res.send('Welcome to the Users and Books API');
 });
 
-// Всички потребители
-app.get('/users', async (req, res) => {
+// Регистрация на потребител
+app.post('/register', async (req, res) => {
+  const { name, email, password } = req.body;
+
+  if (!name || !email || !password) {
+    return res.status(400).send('All fields are required');
+  }
+
+  try {
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const newUser = {
+      name,
+      email,
+      password: hashedPassword,
+      books: [],
+    };
+
+    const result = await db.collection('users').insertOne(newUser);
+    res.status(201).json(result.ops[0]);
+  } catch (err) {
+    res.status(500).send('Error creating user');
+  }
+});
+
+// Логин на потребител
+app.post('/login', async (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).send('Email and password are required');
+  }
+
+  try {
+    const user = await db.collection('users').findOne({ email });
+    if (!user) return res.status(404).send('User not found');
+
+    const isValidPassword = await bcrypt.compare(password, user.password);
+    if (!isValidPassword) return res.status(401).send('Invalid password');
+
+    const token = jwt.sign({ id: user._id, name: user.name }, process.env.JWT_SECRET, {
+      expiresIn: '1h',
+    });
+
+    res.json({ token });
+  } catch (err) {
+    res.status(500).send('Error logging in');
+  }
+});
+
+// Защитени маршрути (изискват валиден JWT)
+app.get('/users', authenticateToken, async (req, res) => {
   try {
     const users = await db.collection('users').find().toArray();
     res.json(users);
@@ -39,12 +103,9 @@ app.get('/users', async (req, res) => {
   }
 });
 
-// Конкретен потребител по ID
-app.get('/users/:id', async (req, res) => {
+app.get('/users/:id', authenticateToken, async (req, res) => {
   try {
-    const user = await db
-      .collection('users')
-      .findOne({ _id: new ObjectId(req.params.id) });
+    const user = await db.collection('users').findOne({ _id: new ObjectId(req.params.id) });
     if (user) {
       res.json(user);
     } else {
@@ -56,7 +117,7 @@ app.get('/users/:id', async (req, res) => {
 });
 
 // Книги на конкретен потребител по ID на потребителя
-app.get('/users/:id/books', async (req, res) => {
+app.get('/users/:id/books', authenticateToken, async (req, res) => {
   try {
     const user = await db.collection('users').findOne({ _id: new ObjectId(req.params.id) });
     if (user) {
@@ -69,8 +130,8 @@ app.get('/users/:id/books', async (req, res) => {
   }
 });
 
-// Създаване на нов потребител
-app.post('/users', async (req, res) => {
+// Създаване на нов потребител (само за тест, не се ползва след логин система)
+app.post('/users', authenticateToken, async (req, res) => {
   try {
     const newUser = {
       name: req.body.name,
@@ -78,14 +139,14 @@ app.post('/users', async (req, res) => {
     };
 
     const result = await db.collection('users').insertOne(newUser);
-    res.status(201).json(result.ops[0]); // Връщаме новосъздадения потребител
+    res.status(201).json(result.ops[0]);
   } catch (err) {
     res.status(500).send('Error creating user');
   }
 });
 
 // Добавяне на нова книга към потребител по ID
-app.post('/users/:id/books', async (req, res) => {
+app.post('/users/:id/books', authenticateToken, async (req, res) => {
   try {
     const user = await db.collection('users').findOne({ _id: new ObjectId(req.params.id) });
 
