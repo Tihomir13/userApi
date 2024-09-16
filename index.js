@@ -43,6 +43,7 @@ app.get('/users', async (req, res) => {
 // .findOne({ _id: new ObjectId(req.params.id) }); 
 app.get('/users/:id', async (req, res) => {
   try {
+    console.log(req.params)
     const user = await db
       .collection('users')
       .findOne({ id: req.params.id });
