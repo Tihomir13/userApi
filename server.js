@@ -40,11 +40,12 @@ app.get('/users', async (req, res) => {
 });
 
 // Конкретен потребител по ID
+// .findOne({ _id: new ObjectId(req.params.id) }); 
 app.get('/users/:id', async (req, res) => {
   try {
     const user = await db
       .collection('users')
-      .findOne({ _id: new ObjectId(req.params.id) });
+      .findOne({ id: req.params.id });
     if (user) {
       res.json(user);
     } else {
