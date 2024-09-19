@@ -110,6 +110,36 @@ app.post('/users/:id', async (req, res) => {
   }
 });
 
+app.delete('users/:id', async (req, res) => {
+  try {
+    const user = await db.collection('users').findOne({ id: +req.params.id });
+    const bookId = +req.body.bookId;
+
+    if (user) {
+      // Намери индекса на книгата, която искаме да изтрием
+      const bookIndex = user.books.findIndex(book => book.id === bookId);
+
+      if (bookIndex === -1) {
+        return res.status(404).send('Book not found');
+      }
+
+      user.books.splice(bookIndex, 1);
+
+      await db.collection('users').updateOne(
+        { id: userId },
+        { $set: { books: user.books } }
+      );
+
+      res.status(200).send('Book deleted successfully');
+    } else {
+      res.status(404).send('User not found');
+    }
+  } catch (err) {
+    res.status(500).send('Error deleting book');
+  }
+});
+
+
 // Стартиране на сървъра
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
