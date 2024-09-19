@@ -86,9 +86,10 @@ app.post('/users', async (req, res) => {
 });
 
 // Добавяне на нова книга към потребител по ID
-app.post('/users/:id/books', async (req, res) => {
+app.post('/users/:id', async (req, res) => {
   try {
-    const user = await db.collection('users').findOne({ _id: new ObjectId(req.params.id) });
+
+    const user = await db.collection('users').findOne({ id: +req.params.id });
 
     if (user) {
       const newBook = {
@@ -97,7 +98,7 @@ app.post('/users/:id/books', async (req, res) => {
       };
 
       await db.collection('users').updateOne(
-        { _id: new ObjectId(req.params.id) },
+        { id: +req.params.id },
         { $push: { books: newBook } }
       );
 
