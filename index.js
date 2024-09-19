@@ -40,7 +40,6 @@ app.get('/users', async (req, res) => {
 });
 
 // Конкретен потребител по ID
-// .findOne({ _id: new ObjectId(req.params.id) }); 
 app.get('/users/:id', async (req, res) => {
   try {
     const user = await db
@@ -59,7 +58,7 @@ app.get('/users/:id', async (req, res) => {
 // Книги на конкретен потребител по ID на потребителя
 app.get('/users/:id/books', async (req, res) => {
   try {
-    const user = await db.collection('users').findOne({ _id: new ObjectId(req.params.id) });
+    const user = await db.collection('users').findOne({ id: +req.params.id });
     if (user) {
       res.json(user.books);
     } else {
