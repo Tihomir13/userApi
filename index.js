@@ -130,7 +130,7 @@ app.delete('users/:id', async (req, res) => {
         { $set: { books: user.books } }
       );
 
-      res.status(200).send('Book deleted successfully');
+      res.status(200).send('Book deleted successfully').json(user.books);
     } else {
       res.status(404).send('User not found');
     }
