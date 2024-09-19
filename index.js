@@ -110,10 +110,10 @@ app.post('/users/:id', async (req, res) => {
   }
 });
 
-app.delete('users/:id', async (req, res) => {
+app.delete('users/:id/books/:id', async (req, res) => {
   try {
-    const user = await db.collection('users').findOne({ id: +req.params.id });
-    const bookId = +req.body.bookId;
+    const user = await db.collection('users').findOne({ id: +req.params.userId });
+    const bookId = +req.params.bookId;
 
     if (user) {
       // Намери индекса на книгата, която искаме да изтрием
