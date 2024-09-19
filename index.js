@@ -15,10 +15,11 @@ let db;
 async function connectDB() {
   try {
     await client.connect();
-    db = client.db('bookstore');  // Базата данни се казва "bookstore"
+    db = client.db('bookstore');
     console.log('Connected to MongoDB');
   } catch (err) {
-    console.error(err);
+    console.error('Failed to connect to MongoDB:', err);
+    process.exit(1); // Спри сървъра, ако базата данни не е достъпна
   }
 }
 
@@ -42,9 +43,8 @@ app.get('/users', async (req, res) => {
 // Конкретен потребител по ID
 app.get('/users/:id', async (req, res) => {
   try {
-    const user = await db
-      .collection('users')
-      .findOne({ id: +req.params.id });
+    const userId = parseInt(req.params.id, 10);
+    const user = await db.collection('users').findOne({ id: userId });
     if (user) {
       res.json(user);
     } else {
@@ -58,9 +58,10 @@ app.get('/users/:id', async (req, res) => {
 // Книги на конкретен потребител по ID на потребителя
 app.get('/users/:id/books', async (req, res) => {
   try {
-    const user = await db.collection('users').findOne({ id: +req.params.id });
+    const userId = parseInt(req.params.id, 10);
+    const user = await db.collection('users').findOne({ id: userId });
     if (user) {
-      res.json(user.books);
+      res.json(user.books || []); // Добави безопасност за undefined
     } else {
       res.status(404).send('User not found');
     }
@@ -78,7 +79,7 @@ app.post('/users', async (req, res) => {
     };
 
     const result = await db.collection('users').insertOne(newUser);
-    res.status(201).json(result.ops[0]); // Връщаме новосъздадения потребител
+    res.status(201).json(result.ops[0]);
   } catch (err) {
     res.status(500).send('Error creating user');
   }
@@ -87,8 +88,8 @@ app.post('/users', async (req, res) => {
 // Добавяне на нова книга към потребител по ID
 app.post('/users/:id', async (req, res) => {
   try {
-
-    const user = await db.collection('users').findOne({ id: +req.params.id });
+    const userId = parseInt(req.params.id, 10);
+    const user = await db.collection('users').findOne({ id: userId });
 
     if (user) {
       const newBook = {
@@ -97,7 +98,7 @@ app.post('/users/:id', async (req, res) => {
       };
 
       await db.collection('users').updateOne(
-        { id: +req.params.id },
+        { id: userId },
         { $push: { books: newBook } }
       );
 
@@ -112,8 +113,8 @@ app.post('/users/:id', async (req, res) => {
 
 app.delete('/users/:userId/books/:bookId', async (req, res) => {
   try {
-    const userId = +req.params.userId;
-    const bookId = +req.params.bookId;
+    const userId = parseInt(req.params.userId, 10);
+    const bookId = parseInt(req.params.bookId, 10);
 
     console.log(`UserId: ${userId}, BookId: ${bookId}`);
 
@@ -138,11 +139,10 @@ app.delete('/users/:userId/books/:bookId', async (req, res) => {
       return res.status(404).send('User not found');
     }
   } catch (err) {
-    console.error(err);
+    console.error('Error deleting book:', err);
     return res.status(500).send('Error deleting book');
   }
 });
-
 
 // Стартиране на сървъра
 const PORT = process.env.PORT || 3000;
