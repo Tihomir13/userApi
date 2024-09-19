@@ -110,13 +110,16 @@ app.post('/users/:id', async (req, res) => {
   }
 });
 
-app.delete('users/:id/books/:id', async (req, res) => {
+app.delete('/users/:userId/books/:bookId', async (req, res) => {
   try {
-    const user = await db.collection('users').findOne({ id: +req.params.userId });
+    const userId = +req.params.userId;
     const bookId = +req.params.bookId;
 
+    console.log(`UserId: ${userId}, BookId: ${bookId}`);
+
+    const user = await db.collection('users').findOne({ id: userId });
+
     if (user) {
-      // Намери индекса на книгата, която искаме да изтрием
       const bookIndex = user.books.findIndex(book => book.id === bookId);
 
       if (bookIndex === -1) {
@@ -130,12 +133,13 @@ app.delete('users/:id/books/:id', async (req, res) => {
         { $set: { books: user.books } }
       );
 
-      res.status(200).send('Book deleted successfully').json(user.books);
+      return res.status(200).json({ message: 'Book deleted successfully', books: user.books });
     } else {
-      res.status(404).send('User not found');
+      return res.status(404).send('User not found');
     }
   } catch (err) {
-    res.status(500).send('Error deleting book');
+    console.error(err);
+    return res.status(500).send('Error deleting book');
   }
 });
 
