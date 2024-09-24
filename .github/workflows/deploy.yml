@@ -38,5 +38,5 @@ jobs:
         uses: denoland/deployctl@v1
         with:
           project: "userapi-63"
-          entrypoint: "server.js"
+          entrypoint: "index.js"
           root: ""
